@@ -1,10 +1,9 @@
 import datetime
 import uuid
-
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Query
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Query, Form
 from fastapi.security import OAuth2PasswordBearer
-from typing import Optional, List, Union
 from pydantic import BaseModel, Field
+from typing import Optional, List, Union
 
 
 class Task(BaseModel):
@@ -88,12 +87,14 @@ def task_detail(task_id: int):
 
 
 @app.post('/tasks')
-def task_add(task: Task):
+def task_add(
+    name: str = Form(..., description="Наименование задачи"),
+    datetime: datetime.datetime = Form(datetime.datetime.now(), description="Дата-время съемки"),
+    files: List[UploadFile] = File(...),
+):
+    task = Task(name=name, datetime=datetime, status='IN_PROGRESS', id=uuid.uuid4())
     tasks.append(task)
-
     return {
         'task': tasks[-1],
-        # 'filename': file.filename,
-
-            # "filenames": [file.filename for file in files]
-            }
+        "filenames": [file.filename for file in files]
+    }
