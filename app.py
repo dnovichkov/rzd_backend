@@ -1,17 +1,22 @@
 import datetime
 import uuid
 
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Query
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional, List, Union
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Task(BaseModel):
     name: str = 'NEW_TASK'
     date: datetime.datetime = datetime.datetime.now()
-    status: str = 'PENDING'
-    id: uuid.UUID = uuid.uuid4()
+    status: str = None
+    id: uuid.UUID = None
+
+
+class LoginData(BaseModel):
+    user: str = 'some_user'
+    password: str = 'some_password'
 
 
 app = FastAPI()
@@ -30,22 +35,28 @@ tasks = [
 
 
 @app.post('/login')
-def login():
-    return {'status': 'success'}
+def login(login: LoginData):
+    """
+    Возвращает статус логина
+    """
+    return {'status': 'success', 'user': login.user}
 
 
 @app.post('/logout')
-def login():
+def logout():
     return {'status': 'success'}
 
 
 @app.get('/content/')
 def main_content():
+    """
+    Возвращает контент для главной страницы
+    """
     content = 'Разрабатываемый интеллектуальный дефектоскоп должен в дальнейшем стать программной частью ' \
               'гидроакустического комплекса на базе многофункционального автономного необитаемого ' \
               'надводно-подводного интеллектуального аппарата «ГЛАЙДЕРОН», ' \
               'разработанного ООО НПК «Сетецентрические Платформы» и САМГТУ'
-    return {'students': content}
+    return {'content': content}
 
 
 def task_check(task_id):
@@ -54,20 +65,24 @@ def task_check(task_id):
 
 
 @app.get('/tasks/')
-def tasks_list(min: Optional[int] = None, max: Optional[int] = None):
-
+def tasks_list(min: Union[int, None] = Query(None, description="минимальный номер задачи"),
+               max: Optional[int] = Query(None, description="максимальный номер задачи")):
+    """
+    Возвращает список задач
+    """
     if min and max:
-        filtered_tasks = list(
-            filter(lambda task: max >= task['id'] >= min, tasks)
-        )
+        if min < 0 or max > len(tasks):
+            print(f'bad request: {min=}, {max=}')
+            return {'count': len(tasks), 'tasks': tasks}
+        filtered_tasks = tasks[min: max]
 
-        return {'tasks': filtered_tasks}
+        return {'count': len(filtered_tasks), 'tasks': filtered_tasks}
 
-    return {'tasks': tasks}
+    return {'count': len(tasks), 'tasks': tasks}
 
 
 @app.get('/tasks/{task_id}')
-def user_detail(task_id: int):
+def task_detail(task_id: int):
     task_check(task_id)
     return {'task': tasks[task_id]}
 
