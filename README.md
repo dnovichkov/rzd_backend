@@ -1,5 +1,7 @@
 **Stub-backend for rzd-project.**
 
+[![Docker publish](https://github.com/dnovichkov/rzd_backend/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/dnovichkov/rzd_backend/actions/workflows/docker-publish.yml)
+
 Activate virtual environment.
 Command for Windows:
 ```
