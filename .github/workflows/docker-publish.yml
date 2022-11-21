@@ -1,4 +1,4 @@
-name: Demo Push
+name: Docker publish
 
 on:
   push:
@@ -8,14 +8,14 @@ on:
       - ci_test
 
     # Publish `v1.2.3` tags as releases.
-    tags:
+    tags: [ 'v*.*.*' ]
       - v*
 
   # Run tests for any PRs.
   pull_request:
 
 env:
-  IMAGE_NAME: ghtoken_product_demo
+  IMAGE_NAME:  ${{ github.repository }}
 
 jobs:
   # Push image to GitHub Packages.
