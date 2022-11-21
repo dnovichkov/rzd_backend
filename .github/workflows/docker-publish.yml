@@ -1,6 +1,8 @@
 name: Docker publish
 
 on:
+  workflow_dispatch:
+
   push:
     # Publish `master` as Docker `latest` image.
     branches:
