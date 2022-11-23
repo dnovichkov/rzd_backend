@@ -18,3 +18,8 @@ Run application:
 ```
 uvicorn app:app --reload
 ```
+Docker using:
+```
+docker -v pull ghcr.io/dnovichkov/dnovichkov/rzd_backend:main
+docker run -p 8000:8000 ghcr.io/dnovichkov/dnovichkov/rzd_backend:main
+```
