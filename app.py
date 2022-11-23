@@ -118,5 +118,5 @@ async def get_image(filename: str):
     logging.debug(f'Запросили снимок {filename}')
     filepath = Path(f'images/{filename}')
     if filepath.is_file():
-        return FileResponse(filepath.resolve())
+        return FileResponse(filepath)
     raise HTTPException(status_code=404, detail=f'Item is not found: {filename}')
