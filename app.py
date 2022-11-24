@@ -1,13 +1,13 @@
 import datetime
 import logging
+import os
 import uuid
-from pathlib import Path
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Query, Form
-from fastapi.security import OAuth2PasswordBearer
-from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
 from typing import Optional, List, Union
+
 import aiofiles
+from fastapi import FastAPI, HTTPException, File, UploadFile, Query, Form
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 
 class Task(BaseModel):
@@ -116,7 +116,10 @@ async def task_add(
 @app.get('/images/{filename}')
 async def get_image(filename: str):
     logging.debug(f'Запросили снимок {filename}')
-    filepath = Path(f'images/{filename}')
-    if filepath.is_file():
-        return FileResponse(filepath)
+    base_path = 'images'
+    full_path = os.path.normpath(os.path.join(base_path, filename))
+    if not full_path.startswith(base_path):
+        raise HTTPException(status_code=404, detail=f'Item is not found: {filename}')
+    if os.path.isfile(full_path):
+        return FileResponse(full_path)
     raise HTTPException(status_code=404, detail=f'Item is not found: {filename}')
