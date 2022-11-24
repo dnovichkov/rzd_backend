@@ -99,17 +99,21 @@ async def task_add(
     date_time: datetime.datetime = Form(datetime.datetime.now(), description="Дата-время съемки"),
     files: List[UploadFile] = File(...),
 ):
+    unique_id = str(uuid.uuid4())
+    filenames = []
     for in_file in files:
-        out_file_path = f'images/{in_file.filename}'
+        resulted_name = f'{unique_id}_{in_file.filename}'
+        out_file_path = f'images/{resulted_name}'
         async with aiofiles.open(out_file_path, 'wb') as out_file:
             content = await in_file.read()
+            filenames.append(resulted_name)
             await out_file.write(content)
     task = {'name': name, 'date': date_time, 'status': 'IN_PROGRESS', 'id': str(uuid.uuid4()),
-            'files': [file.filename for file in files]}
+            'files': filenames}
     tasks.append(task)
     return {
         'task': tasks[-1],
-        "filenames": [file.filename for file in files]
+        "filenames": filenames
     }
 
 
