@@ -2,6 +2,7 @@ import logging
 import platform
 
 import uvicorn
+from defaultenv import env
 
 from app import app
 
@@ -14,7 +15,9 @@ def main():
     logging.debug(f'uname: {platform.machine()}')
     logging.debug(f'system: {platform.system()}')
 
-    config_server = uvicorn.Config(app, host="0.0.0.0", port=8000)
+    port = env('HTTP_PORT', int)
+
+    config_server = uvicorn.Config(app, host="0.0.0.0", port=port)
     server = uvicorn.Server(config=config_server)
     server.install_signal_handlers = lambda: None
     server.run()

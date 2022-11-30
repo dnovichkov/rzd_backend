@@ -23,3 +23,5 @@ Docker using:
 docker -v pull ghcr.io/dnovichkov/dnovichkov/rzd_backend:main
 docker run -p 8000:8000 ghcr.io/dnovichkov/dnovichkov/rzd_backend:main
 ```
+It is possible to configure the app use parameter value both from '.env' file and environment.
+Example for .env is .env.example :)

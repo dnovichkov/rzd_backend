@@ -9,6 +9,8 @@ import aiofiles
 from fastapi import FastAPI, HTTPException, File, UploadFile, Query, Form
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import requests
+from defaultenv import env
 
 
 class TaskStatus(str, Enum):
@@ -161,6 +163,14 @@ async def task_add(
             content = await in_file.read()
             filenames.append(resulted_name)
             await out_file.write(content)
+
+    image_service_url = env('IMAGE_SERVICE_URL')
+    load_image_url = image_service_url + 'api/media-processing/images'
+    for filename in filenames:
+        out_file_path = f'images/{filename}'
+        files = {'file': open(out_file_path, 'rb')}
+        r = requests.post(load_image_url, files=files)
+        logging.debug(r.status_code)
     task = Task(name=name, date=date_time,
                 status=TaskStatus.PENDING, id=unique_id, files=filenames)
     tasks.append(task)
