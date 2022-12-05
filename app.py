@@ -8,9 +8,11 @@ from typing import Optional, List, Union
 import aiofiles
 from fastapi import FastAPI, HTTPException, File, UploadFile, Query, Form
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 import requests
 from defaultenv import env
+
+from json_utils import save_json
 
 
 class TaskStatus(str, Enum):
@@ -39,12 +41,18 @@ class ImageResult(BaseModel):
     result: List[Result]
 
 
+# from pydantic.json import timedelta_isoformat
+
 class Task(BaseModel):
     name: str = 'NEW_TASK'
     date: datetime.datetime = datetime.datetime.now()
     status: TaskStatus = TaskStatus.PENDING
     id: str = None
     results: List[ImageResult] = []
+
+    @validator("date")
+    def datetime_to_string(cls, v):
+        return v.isoformat()
 
 
 class TaskResponse(BaseModel):
@@ -141,6 +149,14 @@ async def tasks_list(min: Union[int, None] = Query(None, description="миним
                 was_all_completed = False
         if was_all_completed and task.results:
             task.status = TaskStatus.COMPLETED
+
+    if min and max:
+        if min < 0 or max > len(tasks):
+            print(f'bad request: {min=}, {max=}')
+            return {'count': len(tasks), 'tasks': tasks}
+        resulted_tasks = tasks[min: max]
+
+    save_json([task.dict() for task in tasks], 'tasks', 'task')
 
     return TaskListResponse(count=len(resulted_tasks), tasks=resulted_tasks)
 
