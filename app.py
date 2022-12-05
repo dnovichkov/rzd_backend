@@ -33,6 +33,7 @@ class Result(BaseModel):
 
 
 class ImageResult(BaseModel):
+    filename: str
     id: str
     status: TaskStatus
     result: List[Result]
@@ -43,7 +44,6 @@ class Task(BaseModel):
     date: datetime.datetime = datetime.datetime.now()
     status: TaskStatus = TaskStatus.PENDING
     id: str = None
-    files: List[str] = []
     results: List[ImageResult] = []
 
 
@@ -63,33 +63,7 @@ class LoginData(BaseModel):
 
 app = FastAPI()
 
-task_res = Result(defect='UglyDefect', presence=0.798, box=Box(x=0.453, y=0.467, height=0.1, width=0.1924024))
-image_res = ImageResult(
-                 id='jkhk320',
-                 status=TaskStatus.COMPLETED,
-                 result=[task_res]
-                 )
-
-tasks = [
-    Task(name='Съемка Александровского моста', date=datetime.datetime(2022, 11, 13, 15, 16),
-         status=TaskStatus.PENDING, id='123', files=['frame1033.jpg', 'frame1099.jpg']),
-    Task(name='Съемка неизвестного моста', date=datetime.datetime(2022, 11, 11, 15, 16),
-         status=TaskStatus.PENDING, id='218', files=['frame1221.jpg']),
-    Task(name='Съемка Кремлевского моста', date=datetime.datetime(2022, 11, 14, 11, 46),
-         status=TaskStatus.COMPLETED, id='126', files=['frame1379.jpg'],
-         results=
-         [
-             ImageResult(
-                 id='jkhk320',
-                 status=TaskStatus.COMPLETED,
-                 result=[Result(defect='UglyDefect', presence=0.798,
-                                box=Box(x=0.453, y=0.467, height=0.1, width=0.1924024))]
-             ),
-         ]
-         ),
-    Task(name='Съемка нового моста', date=datetime.datetime(2022, 11, 14, 16, 00),
-         status=TaskStatus.FAILED, id='136', files=[]),
-]
+tasks = []
 
 
 @app.post('/login')
@@ -128,15 +102,47 @@ async def tasks_list(min: Union[int, None] = Query(None, description="миним
     """
     Возвращает список задач
     """
+    resulted_tasks = tasks
     if min and max:
         if min < 0 or max > len(tasks):
             print(f'bad request: {min=}, {max=}')
             return {'count': len(tasks), 'tasks': tasks}
         filtered_tasks = tasks[min: max]
+        resulted_tasks = filtered_tasks
+    image_service_url = env('IMAGE_SERVICE_URL')
+    status_url = image_service_url + 'api/media-processing/images'
+    task_data = requests.session().get(status_url).json()
+    taks_statuses = {rec.get('id'): rec.get('status') for rec in task_data}
+    # print(taks_statuses)
+    for task in tasks:
+        if not task.results:
+            continue
+        if task.status == TaskStatus.COMPLETED:
+            continue
+        was_all_completed = True
+        for _file in task.results:
+            file_id = _file.id
+            if taks_statuses.get(file_id) == 'completed':
+                _file.status = TaskStatus.COMPLETED
+                detailed_result_url = status_url + '/' + file_id
+                metadata = requests.session().get(detailed_result_url).json().get('result', {}).get('metadata')
 
-        return TaskListResponse(count=len(filtered_tasks), tasks=filtered_tasks)
+                for rec in metadata:
+                    name = rec.get('class')
+                    presence = rec.get('presence')
+                    x = rec.get('box', {}).get('x')
+                    y = rec.get('box', {}).get('y')
+                    width = rec.get('box', {}).get('width')
+                    height = rec.get('box', {}).get('height')
+                    defect_data = Result(defect=name, presence=presence, box=Box(x=x, y=y, width=width, height=height))
+                    _file.result.append(defect_data)
+                # _file.result = requests.session().get(detailed_result_url).json().get('result', {}).get('metadata')
+            else:
+                was_all_completed = False
+        if was_all_completed and task.results:
+            task.status = TaskStatus.COMPLETED
 
-    return TaskListResponse(count=len(tasks), tasks=tasks)
+    return TaskListResponse(count=len(resulted_tasks), tasks=resulted_tasks)
 
 
 @app.get('/tasks/{task_id}', response_model=TaskResponse)
@@ -166,13 +172,28 @@ async def task_add(
 
     image_service_url = env('IMAGE_SERVICE_URL')
     load_image_url = image_service_url + 'api/media-processing/images'
+    results: List[ImageResult] = []
     for filename in filenames:
         out_file_path = f'images/{filename}'
-        files = {'file': open(out_file_path, 'rb')}
-        r = requests.post(load_image_url, files=files)
-        logging.debug(r.status_code)
+
+        payload = {}
+        files = [
+            ('files', (filename,
+                       open(out_file_path, 'rb'),
+                       'image/jpeg'))
+        ]
+        headers = {}
+
+        response = requests.request("POST", load_image_url, headers=headers, data=payload, files=files)
+
+        logging.debug(response.status_code)
+        resp_json = response.json()
+        image_id = resp_json[0].get('id', '')
+        image_res = ImageResult(filename=filename, id=image_id, status=TaskStatus.PENDING, result=[])
+        print(f'{filename=}, {image_id=}')
+        results.append(image_res)
     task = Task(name=name, date=date_time,
-                status=TaskStatus.PENDING, id=unique_id, files=filenames)
+                status=TaskStatus.PENDING, id=unique_id, results=results)
     tasks.append(task)
     return TaskResponse(task=task)
 
