@@ -3,17 +3,8 @@ import platform
 
 import uvicorn
 from defaultenv import env
-from starlette.middleware.cors import CORSMiddleware
 
 from app import app
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
 
 
 def main():
