@@ -173,9 +173,11 @@ async def task_detail(task_id: str):
 @app.post('/tasks', response_model=TaskResponse)
 async def task_add(
     name: str = Form(..., description="Наименование задачи"),
-    date_time: datetime.datetime = Form(datetime.datetime.now(), description="Дата-время съемки"),
+    date_time: Union[datetime.datetime, datetime.date] = Form(datetime.datetime.now(), description="Дата-время съемки"),
     files: List[UploadFile] = File(...),
 ):
+    if type(date_time) == datetime.date:
+        date_time = datetime.datetime.combine(date_time, datetime.datetime.min.time())
     unique_id = str(uuid.uuid4())
     filenames = []
     for in_file in files:
@@ -204,10 +206,13 @@ async def task_add(
 
         logging.debug(response.status_code)
         resp_json = response.json()
-        image_id = resp_json[0].get('id', '')
-        image_res = ImageResult(filename=filename, id=image_id, status=TaskStatus.PENDING, result=[])
-        print(f'{filename=}, {image_id=}')
-        results.append(image_res)
+        if not resp_json:
+            print(response.content)
+        else:
+            image_id = resp_json[0].get('id', '')
+            image_res = ImageResult(filename=filename, id=image_id, status=TaskStatus.PENDING, result=[])
+            print(f'{filename=}, {image_id=}')
+            results.append(image_res)
     task = Task(name=name, date=date_time,
                 status=TaskStatus.PENDING, id=unique_id, results=results)
     tasks.append(task)
