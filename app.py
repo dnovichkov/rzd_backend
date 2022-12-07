@@ -37,6 +37,7 @@ class Result(BaseModel):
 
 class ImageResult(BaseModel):
     filename: str
+    resulted_image: str = ''
     id: str
     status: TaskStatus
     result: List[Result]
@@ -145,7 +146,7 @@ async def tasks_list(min: Union[int, None] = Query(None, description="миним
                 _file.status = TaskStatus.COMPLETED
                 detailed_result_url = status_url + '/' + file_id
                 metadata = requests.session().get(detailed_result_url).json().get('result', {}).get('metadata')
-
+                _file.resulted_image = detailed_result_url + '/download'
                 for rec in metadata:
                     name = rec.get('class')
                     presence = rec.get('presence')
