@@ -19,6 +19,7 @@ DEFECT_NAMES = {
     'destruction of concrete': 'Разрушение бетона',
     'concrete leaching': 'Отсутствие бетонной кладки',
     'cracks': 'Трещина(ы)',
+    'other defects': 'Прочие дефекты',
 }
 
 
