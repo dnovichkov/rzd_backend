@@ -15,11 +15,17 @@ from defaultenv import env
 
 from json_utils import save_json
 
+DEFECT_NAMES = {
+    'destruction of concrete': 'Разрушение бетона',
+    'concrete leaching': 'Отсутствие бетонной кладки',
+    'cracks': 'Трещина(ы)',
+}
+
 
 class TaskStatus(str, Enum):
-    PENDING = 'PENDING'
-    COMPLETED = 'COMPLETED'
-    FAILED = 'FAILED'
+    PENDING = 'В работе'
+    COMPLETED = 'Завершено'
+    FAILED = 'Ошибка'
 
 
 class Box(BaseModel):
@@ -148,12 +154,13 @@ async def tasks_list(min: Union[int, None] = Query(None, description="миним
 
                 for rec in metadata:
                     name = rec.get('class')
+                    translated_name = DEFECT_NAMES.get(name, name)
                     presence = rec.get('presence')
                     x = rec.get('box', {}).get('x')
                     y = rec.get('box', {}).get('y')
                     width = rec.get('box', {}).get('width')
                     height = rec.get('box', {}).get('height')
-                    defect_data = Result(defect=name, presence=presence, box=Box(x=x, y=y, width=width, height=height))
+                    defect_data = Result(defect=translated_name, presence=presence, box=Box(x=x, y=y, width=width, height=height))
                     _file.result.append(defect_data)
                 # _file.result = requests.session().get(detailed_result_url).json().get('result', {}).get('metadata')
             else:
