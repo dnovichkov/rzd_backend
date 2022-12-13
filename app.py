@@ -239,6 +239,21 @@ async def task_add(
     return TaskResponse(task=task)
 
 
+@app.delete('/tasks/{task_id}')
+async def task_delete(task_id: str):
+    """
+    Удаляет задачу с указанным идентификатором
+    :param task_id:
+    :return:
+    """
+    tasks_by_id = get_tasks_by_id()
+    if task_id not in tasks_by_id:
+        raise HTTPException(status_code=404, detail=f'Item is not found: {task_id}')
+    task = tasks_by_id[task_id]
+    tasks.remove(task)
+    return TaskResponse(task=task)
+
+
 @app.get('/images/{filename}')
 async def get_image(filename: str):
     logging.debug(f'Запросили снимок {filename}')
