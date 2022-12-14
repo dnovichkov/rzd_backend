@@ -239,6 +239,16 @@ async def task_add(
     return TaskResponse(task=task)
 
 
+@app.delete('/tasks', response_model=TaskListResponse)
+async def tasks_clear():
+    """
+    Очищает список задач
+    :return:
+    """
+    tasks.clear()
+    return TaskListResponse(count=len(tasks), tasks=tasks)
+
+
 @app.delete('/tasks/{task_id}')
 async def task_delete(task_id: str):
     """
