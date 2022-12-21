@@ -94,11 +94,11 @@ tasks = []
 
 
 @app.post('/login')
-async def login(login: LoginData):
+async def login(_login: LoginData):
     """
     Возвращает статус логина
     """
-    return {'status': 'success', 'user': login.user}
+    return {'status': 'success', 'user': _login.user}
 
 
 @app.post('/logout')
@@ -158,11 +158,12 @@ async def tasks_list(min: Union[int, None] = Query(None, description="миним
                     name = rec.get('class')
                     translated_name = DEFECT_NAMES.get(name, name)
                     presence = rec.get('presence')
-                    x = rec.get('box', {}).get('x')
-                    y = rec.get('box', {}).get('y')
+                    x_coord = rec.get('box', {}).get('x')
+                    y_coord = rec.get('box', {}).get('y')
                     width = rec.get('box', {}).get('width')
                     height = rec.get('box', {}).get('height')
-                    defect_data = Result(defect=translated_name, presence=presence, box=Box(x=x, y=y, width=width, height=height))
+                    defect_data = Result(defect=translated_name, presence=presence,
+                                         box=Box(x=x_coord, y=y_coord, width=width, height=height))
                     _file.result.append(defect_data)
                 # _file.result = requests.session().get(detailed_result_url).json().get('result', {}).get('metadata')
             else:
@@ -196,7 +197,7 @@ async def task_add(
     date_time: Union[datetime.datetime, datetime.date] = Form(datetime.datetime.now(), description="Дата-время съемки"),
     files: List[UploadFile] = File(...),
 ):
-    if type(date_time) == datetime.date:
+    if isinstance(date_time, datetime.date):
         date_time = datetime.datetime.combine(date_time, datetime.datetime.min.time())
     unique_id = str(uuid.uuid4())
     filenames = []
@@ -222,16 +223,15 @@ async def task_add(
         ]
         headers = {}
 
-        response = requests.request("POST", load_image_url, headers=headers, data=payload, files=files)
+        response = requests.request("POST", load_image_url, headers=headers, data=payload, files=files, timeout=60)
 
         logging.debug(response.status_code)
         resp_json = response.json()
         if not resp_json:
-            print(response.content)
+            logging.debug(response.content)
         else:
             image_id = resp_json[0].get('id', '')
             image_res = ImageResult(filename=filename, id=image_id, status=TaskStatus.PENDING, result=[])
-            print(f'{filename=}, {image_id=}')
             results.append(image_res)
     task = Task(name=name, date=date_time,
                 status=TaskStatus.PENDING, id=unique_id, results=results)
