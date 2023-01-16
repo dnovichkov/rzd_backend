@@ -138,7 +138,13 @@ async def tasks_list(min: Union[int, None] = Query(None, description="миним
         resulted_tasks = filtered_tasks
     image_service_url = env('IMAGE_SERVICE_URL')
     status_url = image_service_url + 'api/media-processing/images'
-    task_data = requests.session().get(status_url).json()
+
+    try:
+        task_data = requests.session().get(status_url).json()
+    except requests.exceptions.ConnectionError as ex:
+        logging.error(f'Error while sending post request: {ex}')
+        raise HTTPException(status_code=500, detail=f'Error while sending get request to recognition API')
+
     taks_statuses = {rec.get('id'): rec.get('status') for rec in task_data}
     # print(taks_statuses)
     for task in tasks:
@@ -223,7 +229,11 @@ async def task_add(
         ]
         headers = {}
 
-        response = requests.request("POST", load_image_url, headers=headers, data=payload, files=files, timeout=60)
+        try:
+            response = requests.request("POST", load_image_url, headers=headers, data=payload, files=files, timeout=60)
+        except requests.exceptions.ConnectionError as ex:
+            logging.error(f'Error while sending post request: {ex}')
+            raise HTTPException(status_code=500, detail=f'Error while sending post request to recognition API')
 
         logging.debug(response.status_code)
         resp_json = response.json()
